@@ -1,52 +1,96 @@
-use eframe::egui;
-use std::env;
-
-use log::error;
-use windows::Win32::Foundation::*;
-use windows::Win32::UI::WindowsAndMessaging::*;
+use eframe::egui::*;
+use egui_winit_platform::{Platform, PlatformDescriptor};
+use windows::{
+    Win32::Foundation::HWND,
+    Win32::UI::WindowsAndMessaging::{FlashWindowEx, FLASHWINFO, FLASHW_ALL, FLASHW_TIMERNOFG},
+};
+use winit::platform::windows::WindowExtWindows;
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
 
 fn main() {
-    env::set_var("RUST_LOG", "info");
     env_logger::init();
 
-    let native_options = eframe::NativeOptions::default();
-    eframe::run_native(
-        "シンプルなボタン",
-        native_options,
-        Box::new(|_cc| Ok(Box::new(MyApp::new(cc)))),
-    );
-}
+    // イベントループとウィンドウの作成
+    let event_loop = EventLoop::new().unwrap();
+    let window = WindowBuilder::new()
+        .with_title("egui with winit example")
+        .build(&event_loop)
+        .unwrap();
 
-struct MyApp {
-    window: eframe::Window,
-}
+    // ウィンドウハンドル（HWND）の取得
+    let hwnd = window.hwnd() as HWND;
 
-impl MyApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_fonts(egui::FontDefinitions::default());
-        Self {
-            // 初期状態の設定
-        }
-    }
+    // eguiのプラットフォームを初期化
+    let mut platform = Platform::new(PlatformDescriptor {
+        physical_width: window.inner_size().width,
+        physical_height: window.inner_size().height,
+        scale_factor: window.scale_factor(),
+        font_definitions: FontDefinitions::default(),
+        style: Style::default(),
+    });
 
-    fn flash_taskbar(&self) {
-        unsafe {
-            let h = match self.window.handle.hwnd() {
-                Some(h) => h,
-                None => {
-                    error!("ウィンドウハンドルが取得できませんでした。");
-                    return;
+    // Rendererの初期化（今回はeguiの描画は行いません）
+    // 実際のアプリケーションでは、適切なレンダラーを使用してください
+
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+
+        // イベントをプラットフォームに転送
+        platform.handle_event(&event);
+
+        match event {
+            Event::WindowEvent { event, .. } => {
+                match event {
+                    WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                    WindowEvent::Resized(size) => {
+                        // ウィンドウサイズ変更時の処理
+                        platform.update_window_size(size.width, size.height);
+                    }
+                    _ => {}
                 }
-            };
-            let hwnd = HWND(h as *mut _);
-            let mut flash_info = FLASHWINFO {
-                cbSize: std::mem::size_of::<FLASHWINFO>() as u32,
-                hwnd,
-                dwFlags: FLASHW_ALL,
-                uCount: 3,
-                dwTimeout: 0,
-            };
-            FlashWindowEx(&mut flash_info);
+            }
+            Event::MainEventsCleared => {
+                // eguiのフレームを開始
+                platform.update_time(0.0); // 時間の更新が必要な場合は適切に設定
+
+                platform.begin_frame();
+
+                // UIの構築
+                let ctx = platform.context();
+                CentralPanel::default().show(&ctx, |ui| {
+                    if ui.button("Flash Window").clicked() {
+                        flash_window(hwnd);
+                    }
+                });
+
+                let full_output = platform.end_frame(Some(&window));
+                let paint_jobs = platform.context().tessellate(full_output.shapes);
+
+                // ここで描画を行う（実際にはレンダラーが必要）
+                // 例えば、egui_wgpu_backend などを使用して描画します
+
+                // 次のフレームをリクエスト
+                window.request_redraw();
+            }
+            _ => {}
         }
+    });
+}
+
+// FlashWindowExを呼び出す関数
+fn flash_window(hwnd: HWND) {
+    unsafe {
+        let mut flash_info = FLASHWINFO::default();
+        flash_info.cbSize = std::mem::size_of::<FLASHWINFO>() as u32;
+        flash_info.hwnd = hwnd;
+        flash_info.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
+        flash_info.uCount = 0; // 無限に点滅
+        flash_info.dwTimeout = 0;
+
+        FlashWindowEx(&flash_info);
     }
 }

@@ -989,6 +989,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_winit_platform"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5185a2734c3698507596952a37da66d00ea357ae989a2c2c1c2da9c64769a79"
+dependencies = [
+ "egui",
+ "winit",
+]
+
+[[package]]
 name = "emath"
 version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1133,9 +1143,11 @@ name = "flash_taskbar_app"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "egui_winit_platform",
  "env_logger",
  "log",
  "windows 0.58.0",
+ "winit",
 ]
 
 [[package]]
