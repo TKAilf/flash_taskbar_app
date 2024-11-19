@@ -1,7 +1,7 @@
-use log::info;
+use log::{error, info};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::Key;
 use winit::window::{Window, WindowId};
 
@@ -12,11 +12,15 @@ struct App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        self.window = Some(
-            event_loop
-                .create_window(Window::default_attributes())
-                .unwrap(),
-        );
+        let window = match event_loop.create_window(Window::default_attributes()) {
+            Ok(window) => window,
+            Err(e) => {
+                error!("error: {:?}", e);
+                return;
+            }
+        };
+
+        self.window = Some(window);
     }
 
     fn window_event(&mut self, _event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -47,15 +51,6 @@ impl ApplicationHandler for App {
 fn main() {
     // イベントループとウィンドウの作成
     let event_loop = EventLoop::new().unwrap();
-    // ControlFlow::Poll continuously runs the event loop, even if the OS hasn't
-    // dispatched any events. This is ideal for games and similar applications.
-    event_loop.set_control_flow(ControlFlow::Poll);
-
-    // ControlFlow::Wait pauses the event loop if no events are available to process.
-    // This is ideal for non-game applications that only update in response to user
-    // input, and uses significantly less power/CPU time than ControlFlow::Poll.
-    event_loop.set_control_flow(ControlFlow::Wait);
-
     let mut app = App::default();
     let _ = event_loop.run_app(&mut app);
 }
