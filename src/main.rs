@@ -49,6 +49,7 @@ impl ApplicationHandler for App {
 }
 
 fn main() {
+    env_logger::init();
     // イベントループとウィンドウの作成
     let event_loop = EventLoop::new().unwrap();
     let mut app = App::default();
