@@ -1,8 +1,9 @@
+use env_logger::Env;
 use log::{error, info};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::keyboard::Key;
+use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowId};
 
 #[derive(Default)]
@@ -19,6 +20,7 @@ impl ApplicationHandler for App {
                 return;
             }
         };
+        info!("ウィンドウを作成しました");
 
         self.window = Some(window);
     }
@@ -30,8 +32,12 @@ impl ApplicationHandler for App {
                 event,
                 is_synthetic: _,
             } => {
-                if let Key::Character(s) = &event.logical_key {
-                    if s == " " {
+                info!(
+                    "キーボードイベントが発生しました。キーの状態: {:?}。logical_key: {:?}",
+                    event.state, event.logical_key
+                );
+                if let Key::Named(s) = &event.logical_key {
+                    if s == &NamedKey::Space {
                         match event.state {
                             ElementState::Pressed => {
                                 info!("スペースキーが押下されました");
@@ -49,9 +55,18 @@ impl ApplicationHandler for App {
 }
 
 fn main() {
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    info!("ログを初期化しました");
     // イベントループとウィンドウの作成
-    let event_loop = EventLoop::new().unwrap();
+    let event_loop = match EventLoop::new() {
+        Ok(event_loop) => event_loop,
+        Err(e) => {
+            error!("error: {:?}", e);
+            return;
+        }
+    };
     let mut app = App::default();
+    info!("イベントループを開始します");
     let _ = event_loop.run_app(&mut app);
+    info!("アプリケーションを終了します");
 }
