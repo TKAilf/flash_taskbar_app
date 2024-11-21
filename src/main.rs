@@ -4,6 +4,7 @@ use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{Key, NamedKey};
+use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use winit::window::{Window, WindowId};
 
 #[derive(Default)]
@@ -41,6 +42,28 @@ impl ApplicationHandler for App {
                         match event.state {
                             ElementState::Pressed => {
                                 info!("スペースキーが押下されました");
+                                let window_ref = match &self.window {
+                                    Some(window) => window,
+                                    None => {
+                                        error!("ウィンドウがありません");
+                                        return;
+                                    }
+                                };
+                                let window_handle = match window_ref.window_handle() {
+                                    Ok(window_handle) => window_handle,
+                                    Err(e) => {
+                                        error!("エラーが起きました: {:?}", e);
+                                        return;
+                                    }
+                                };
+                                let window_raw = window_handle.as_raw();
+                                match window_raw {
+                                    RawWindowHandle::Win32(handle) => Some(handle.hwnd),
+                                    _ => {
+                                        error!("サポートされていない形式のウィンドウハンドルです");
+                                        None
+                                    }
+                                };
                             }
                             ElementState::Released => {
                                 info!("スペースキーが離されました");
