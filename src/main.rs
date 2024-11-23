@@ -1,5 +1,7 @@
 use env_logger::Env;
 use log::{error, info};
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::WindowsAndMessaging::{FlashWindowEx, FLASHWINFO, FLASHW_TRAY};
 use winit::application::ApplicationHandler;
 use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -42,28 +44,31 @@ impl ApplicationHandler for App {
                         match event.state {
                             ElementState::Pressed => {
                                 info!("スペースキーが押下されました");
-                                let window_ref = match &self.window {
+                                let winit_window_ref = match &self.window {
                                     Some(window) => window,
                                     None => {
                                         error!("ウィンドウがありません");
                                         return;
                                     }
                                 };
-                                let window_handle = match window_ref.window_handle() {
+                                let winit_window_handle = match winit_window_ref.window_handle() {
                                     Ok(window_handle) => window_handle,
                                     Err(e) => {
                                         error!("エラーが起きました: {:?}", e);
                                         return;
                                     }
                                 };
-                                let window_raw = window_handle.as_raw();
-                                match window_raw {
-                                    RawWindowHandle::Win32(handle) => Some(handle.hwnd),
+                                let winit_window_raw = winit_window_handle.as_raw();
+                                let winit_window_hwnd = match winit_window_raw {
+                                    RawWindowHandle::Win32(handle) => {
+                                        HWND(handle.hwnd.get() as isize)
+                                    }
                                     _ => {
-                                        error!("サポートされていない形式のウィンドウハンドルです");
-                                        None
+                                        error!("Windows 以外のプラットフォームです");
+                                        return;
                                     }
                                 };
+                                flash_window(winit_window_hwnd);
                             }
                             ElementState::Released => {
                                 info!("スペースキーが離されました");
@@ -73,6 +78,25 @@ impl ApplicationHandler for App {
                 }
             }
             _ => (),
+        }
+    }
+}
+
+fn flash_window(hwnd: HWND) {
+    unsafe {
+        let mut flash_info = FLASHWINFO {
+            cbSize: std::mem::size_of::<FLASHWINFO>() as u32,
+            hwnd,
+            dwFlags: FLASHW_TRAY,
+            uCount: 5,    // 点滅回数
+            dwTimeout: 0, // デフォルトのタイムアウト
+        };
+
+        let result = FlashWindowEx(&mut flash_info);
+        if result.as_bool() {
+            println!("ウィンドウの点滅に成功しました");
+        } else {
+            eprintln!("ウィンドウの点滅に失敗しました");
         }
     }
 }
