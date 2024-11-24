@@ -9,12 +9,16 @@ use winit::keyboard::{Key, NamedKey};
 use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use winit::window::{Window, WindowId};
 
+/// アプリケーションの状態を保持する構造体です。
 #[derive(Default)]
 struct App {
     window: Option<Window>,
 }
 
+/// App構造体に対するApplicationHandlerトレイトの実装。
 impl ApplicationHandler for App {
+    /// アプリケーションが再開されたときに呼び出されるメソッドです。
+    /// 新しいウィンドウを作成し、それを `window` フィールドに割り当てます。
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = match event_loop.create_window(Window::default_attributes()) {
             Ok(window) => window,
@@ -28,6 +32,7 @@ impl ApplicationHandler for App {
         self.window = Some(window);
     }
 
+    /// キーボード入力などのウィンドウイベントを処理します。
     fn window_event(&mut self, _event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::KeyboardInput {
@@ -82,6 +87,11 @@ impl ApplicationHandler for App {
     }
 }
 
+/// タスクバーのウィンドウを点滅させてユーザーの注意を引く関数です。
+///
+/// # 引数
+///
+/// * `hwnd` - 点滅させるウィンドウのハンドル
 fn flash_window(hwnd: HWND) {
     unsafe {
         let mut flash_info = FLASHWINFO {
@@ -101,6 +111,8 @@ fn flash_window(hwnd: HWND) {
     }
 }
 
+/// エントリーポイントです。
+/// ロガーを初期化し、イベントループを作成し、アプリケーションを実行します。
 fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     info!("ログを初期化しました");
@@ -114,6 +126,9 @@ fn main() {
     };
     let mut app = App::default();
     info!("イベントループを開始します");
-    let _ = event_loop.run_app(&mut app);
+    let result = event_loop.run_app(&mut app);
+    if let Err(e) = result {
+        error!("error: {:?}", e);
+    }
     info!("アプリケーションを終了します");
 }
