@@ -11,7 +11,7 @@ use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
-use winit::window::{Icon, Window, WindowId};
+use winit::window::{Icon, Window, WindowAttributes, WindowId};
 
 /// アプリケーションの状態を保持する構造体です。
 #[derive(Default)]
@@ -24,7 +24,9 @@ impl ApplicationHandler for App {
     /// アプリケーションが再開されたときに呼び出されるメソッドです。
     /// 新しいウィンドウを作成し、それを `window` フィールドに割り当てます。
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window = match event_loop.create_window(Window::default_attributes()) {
+        let window_attributes = WindowAttributes::default().with_title("Flash Taskbar App");
+
+        let window = match event_loop.create_window(window_attributes) {
             Ok(window) => window,
             Err(e) => {
                 error!("error: {:?}", e);
