@@ -1,3 +1,7 @@
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+
 use env_logger::Env;
 use log::{error, info};
 use windows::Win32::Foundation::HWND;
@@ -7,7 +11,7 @@ use winit::event::{ElementState, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{Key, NamedKey};
 use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
-use winit::window::{Window, WindowId};
+use winit::window::{Icon, Window, WindowId};
 
 /// アプリケーションの状態を保持する構造体です。
 #[derive(Default)]
@@ -28,6 +32,12 @@ impl ApplicationHandler for App {
             }
         };
         info!("ウィンドウを作成しました");
+
+        // アイコンを読み込む
+        let icon_bytes = load_icon_from_file("assets/icon.ico");
+        let app_icon = load_icon(&icon_bytes);
+        window.set_window_icon(Some(app_icon));
+        info!("アイコンを設定しました");
 
         self.window = Some(window);
     }
@@ -109,6 +119,46 @@ fn flash_window(hwnd: HWND) {
             eprintln!("ウィンドウの点滅に失敗しました");
         }
     }
+}
+
+/// ファイルからアイコンをバイト配列で読み込みます。
+///
+/// # 引数
+///
+/// * `path` - 開きたいアイコンファイルのパスを表す文字列スライス。
+///
+/// # パニック
+///
+/// ファイルのオープンに失敗した場合は、"Failed to open icon file" というメッセージとともにパニックを引き起こします。
+fn load_icon_from_file(path: &str) -> Vec<u8> {
+    let mut file = File::open(Path::new(path)).expect("Failed to open icon file");
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)
+        .expect("Failed to read icon file");
+    buffer
+}
+
+/// メモリから画像を読み込み、Iconを取得します。
+///
+/// # パラメータ
+/// - `bytes`: 画像データのバイト配列。
+///
+/// # 戻り値
+/// - `Icon`: RGBAデータ、幅、高さを保持する`Icon`構造体。
+///
+/// # パニック
+/// 画像の読み込みに失敗した場合、`"Failed to load image from memory"`というメッセージと共にパニックします。
+/// アイコンのオープンに失敗した場合、`"Failed to open icon"`というメッセージと共にパニックします。
+fn load_icon(bytes: &[u8]) -> Icon {
+    let (icon_rgba, icon_width, icon_height) = {
+        let image = image::load_from_memory(bytes)
+            .expect("Failed to load image from memory")
+            .into_rgba8();
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+        (rgba, width, height)
+    };
+    Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to open icon")
 }
 
 /// エントリーポイントです。
