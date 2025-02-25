@@ -37,6 +37,8 @@ impl ApplicationHandler for App {
 
         // アイコンを読み込む
         let icon_bytes = load_icon_from_file("assets/icon.ico");
+        // let icon_bytes = load_icon_from_file("assets/orange_icon.ico");
+        // let icon_bytes = load_icon_from_file("assets/blue_icon.ico");
         let app_icon = load_icon(&icon_bytes);
         window.set_window_icon(Some(app_icon));
         info!("アイコンを設定しました");
